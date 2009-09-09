@@ -4,6 +4,8 @@
 
 #include <stdint.h>
 
+#define MESSAGE_MAX (65536 / sizeof (struct message))
+
 /**
  * \brief Message structure
  */
