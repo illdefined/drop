@@ -2,6 +2,7 @@
 #ifndef ICMP_H
 #define ICMP_H
 
+#include <ev.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +14,10 @@
 #include "predict.h"
 
 extern int icmp;
+
+extern __thread struct ev_io icmp_watch;
+
+void icmp_event(struct ev_loop *, struct ev_io *, int);
 
 static inline int icmp_init(const struct in6_addr *restrict laddr) {
 	struct sockaddr_in6 addr = {

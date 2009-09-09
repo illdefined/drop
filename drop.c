@@ -1,3 +1,6 @@
+#include <pthread.h>
+
+#include <errno.h>
 #include <fcntl.h>
 #include <pwd.h>
 #include <signal.h>
@@ -9,6 +12,7 @@
 
 #include <arpa/inet.h>
 
+#include "event.h"
 #include "predict.h"
 
 #include "icmp.h"
@@ -23,6 +27,7 @@ static const char usage[] =
 	"  -l ADDR     Listen address\n"
 	"  -n          Do not fork\n"
 	"  -p FILE     PID file\n"
+	"  -t NUM      Number of threads\n"
 	"  -u USER     Drop privileges\n";
 
 static void parsig(int signum) {
@@ -34,6 +39,7 @@ static void parsig(int signum) {
 
 int main(int argc, char *argv[]) {
 	bool daemon = true;
+	unsigned long threads = 4;
 	const char *ctrl = "/var/run/drop/control";
 	const char *lstr = "::";
 	const char *pidpath = (char *) 0;
@@ -42,7 +48,7 @@ int main(int argc, char *argv[]) {
 
 	/* Parse command-line arguments */
 	int opt;
-	while ((opt = getopt(argc, argv, "c:hl:np:u:")) >= 0) {
+	while ((opt = getopt(argc, argv, "c:hl:np:t:u:")) >= 0) {
 		switch (opt) {
 		case 'c':
 			ctrl = optarg;
@@ -64,6 +70,10 @@ int main(int argc, char *argv[]) {
 			pidpath = optarg;
 			break;
 
+		case 't':
+			threads = strtoul(optarg, (char **) 0, 0);
+			break;
+
 		case 'u':
 			user = optarg;
 			break;
@@ -73,6 +83,9 @@ int main(int argc, char *argv[]) {
 			return EXIT_FAILURE;
 		}
 	}
+
+	if (unlikely(threads < 1))
+		fputs("At least one thread will be used\n", stderr);
 
 	/* Initialise sockets */
 	struct in6_addr laddr;
@@ -122,6 +135,9 @@ int main(int argc, char *argv[]) {
 	/* Open system log */
 	openlog("drop", 0, LOG_USER);
 
+	pid_t pid;
+	pid_t parent;
+
 	if (daemon) {
 		struct sigaction action = {
 			.sa_handler = parsig,
@@ -133,7 +149,7 @@ int main(int argc, char *argv[]) {
 		sigaction(SIGUSR1, &action, (struct sigaction *) 0);
 
 		/* Fork to background */
-		pid_t pid = fork();
+		pid = fork();
 		if (unlikely(pid < 0)) {
 			perror("Cannot fork to background");
 			return EXIT_FAILURE;
@@ -144,7 +160,7 @@ int main(int argc, char *argv[]) {
 			return EXIT_FAILURE;
 		}
 
-		pid_t parent = getppid();
+		parent = getppid();
 
 		/* Create new session */
 		if (setsid() < 0) {
@@ -162,19 +178,30 @@ int main(int argc, char *argv[]) {
 		freopen("/dev/null", "r", stdin);
 		freopen("/dev/null", "w", stdout);
 		freopen("/dev/null", "w", stderr);
-
-		/* Save process ID */
-		if (pidfile) {
-			fprintf(pidfile, "%i", getpid());
-			fclose(pidfile);
-		}
-
-		/* Tell parent that we are okay */
-		kill(parent, SIGUSR1);
 	}
 
-	else if (pidfile) {
+	/* Save process ID */
+	if (pidfile) {
 		fprintf(pidfile, "%i", getpid());
 		fclose(pidfile);
 	}
+
+	/* Spawn worker threads */
+	for (unsigned long iter = 1; iter < threads; ++threads) {
+		pthread_t thread;
+
+		errno = pthread_create(&thread, (pthread_attr_t *) 0, event_init, (void *) 0);
+		if (unlikely(errno)) {
+			syslog(LOG_ERR, "Failed to spawn thread: %m");
+			if (daemon)
+				kill(parent, SIGCHLD);
+			return EXIT_FAILURE;
+		}
+	}
+
+	/* Tell parent that we are okay */
+	if (daemon)
+		kill(parent, SIGUSR1);
+
+	event_init((void *) 0);
 }

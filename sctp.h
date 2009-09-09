@@ -2,6 +2,7 @@
 #ifndef SCTP_H
 #define SCTP_H
 
+#include <ev.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,6 +17,12 @@
 #define SCTP_BACKLOG 16
 
 extern int sctp;
+
+extern __thread struct ev_io sctp_rwatch;
+extern __thread struct ev_io sctp_wwatch;
+
+void sctp_revent(struct ev_loop *, struct ev_io *, int);
+void sctp_wevent(struct ev_loop *, struct ev_io *, int);
 
 static inline int sctp_init(const struct in6_addr *restrict laddr) {
 	struct sockaddr_in6 addr = {

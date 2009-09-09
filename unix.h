@@ -2,6 +2,7 @@
 #ifndef UNIX_H
 #define UNIX_H
 
+#include <ev.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +13,10 @@
 #include "predict.h"
 
 extern int unix;
+
+extern __thread struct ev_io unix_watch;
+
+void unix_event(struct ev_loop *, struct ev_io *, int);
 
 static inline int unix_init(const char *restrict path) {
 	struct sockaddr_un addr = {
