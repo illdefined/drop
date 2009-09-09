@@ -32,6 +32,7 @@ static const char usage[] =
 
 static void parsig(int signum) {
 	switch (signum) {
+	case SIGALRM: exit(EXIT_FAILURE);
 	case SIGCHLD: exit(EXIT_FAILURE);
 	case SIGUSR1: exit(EXIT_SUCCESS);
 	}
@@ -46,7 +47,7 @@ int main(int argc, char *argv[]) {
 	const char *user = (char *) 0;
 	FILE *pidfile = (FILE *) 0;
 
-	/* Parse command-line arguments */
+	/* Parse command line arguments */
 	int opt;
 	while ((opt = getopt(argc, argv, "c:hl:np:t:u:")) >= 0) {
 		switch (opt) {
@@ -145,6 +146,7 @@ int main(int argc, char *argv[]) {
 			.sa_flags   = 0
 		};
 
+		sigaction(SIGALRM, &action, (struct sigaction *) 0);
 		sigaction(SIGCHLD, &action, (struct sigaction *) 0);
 		sigaction(SIGUSR1, &action, (struct sigaction *) 0);
 
@@ -156,6 +158,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		else if (pid > 0) {
+			alarm(10);
 			pause();
 			return EXIT_FAILURE;
 		}
