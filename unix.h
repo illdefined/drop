@@ -18,6 +18,13 @@ extern __thread struct ev_io unix_watch;
 
 void unix_event(struct ev_loop *, struct ev_io *, int);
 
+/**
+ * \brief Unix socket initialisation routine
+ *
+ * \param path socket path name
+ *
+ * \return file descriptor
+ */
 static inline int unix_init(const char *restrict path) {
 	struct sockaddr_un addr = {
 		.sun_family = AF_UNIX,

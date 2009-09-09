@@ -19,6 +19,9 @@
 #include "sctp.h"
 #include "unix.h"
 
+/**
+ * \brief Command line argument description
+ */
 static const char usage[] =
 	"Usage: %s [options]\n"
 	"\n"
@@ -30,6 +33,11 @@ static const char usage[] =
 	"  -t NUM      Number of threads\n"
 	"  -u USER     Drop privileges\n";
 
+/**
+ * \brief Parent process signal handler
+ *
+ * \param signum signal number
+ */
 static void parsig(int signum) {
 	switch (signum) {
 	case SIGALRM: exit(EXIT_FAILURE);
@@ -38,6 +46,14 @@ static void parsig(int signum) {
 	}
 }
 
+/**
+ * \brief Main routine
+ *
+ * \param argc number of arguments
+ * \param argv argument vector
+ *
+ * \return exit status
+ */
 int main(int argc, char *argv[]) {
 	bool daemon = true;
 	unsigned long threads = 4;

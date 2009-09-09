@@ -24,6 +24,13 @@ extern __thread struct ev_io sctp_wwatch;
 void sctp_revent(struct ev_loop *, struct ev_io *, int);
 void sctp_wevent(struct ev_loop *, struct ev_io *, int);
 
+/**
+ * \brief SCTP socket initialisation routine
+ *
+ * \param laddr listen address
+ *
+ * \return file descriptor
+ */
 static inline int sctp_init(const struct in6_addr *restrict laddr) {
 	struct sockaddr_in6 addr = {
 		.sin6_family = AF_INET6,

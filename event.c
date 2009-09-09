@@ -11,19 +11,35 @@
 #include "sctp.h"
 #include "unix.h"
 
+/**
+ * \brief Thread-local event loop
+ */
 __thread struct ev_loop *loop;
 
 static pthread_once_t event_once = PTHREAD_ONCE_INIT;
 
+/**
+ * \brief System error callback
+ *
+ * \param message error message
+ */
 static void event_error(const char *restrict message) {
 	syslog(LOG_ERR, "%s: %m", message);
 	exit(EXIT_FAILURE);
 }
 
+/**
+ * \brief Global libev initialisation routine
+ */
 static void event_once_init() {
 	ev_set_syserr_cb(event_error);
 }
 
+/**
+ * \brief Event initialisation routine
+ *
+ * \param arg unused
+ */
 void *event_init(void *arg) {
 	errno = pthread_once(&event_once, event_once_init);
 	if (unlikely(errno)) {
